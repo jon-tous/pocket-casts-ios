@@ -19,7 +19,7 @@ class EpisodeArtwork {
     /// Attempts to load episode artwork with the following priority (matching Android):
     /// 1. Show notes image URL from the server (publisher intent takes precedence)
     /// 2. Embedded artwork from the AVAsset (ID3 tags)
-    /// If an image is retrieved, `episodeEmbeddedArtworkLoaded` notification is triggered
+    /// If an image is retrieved, `episodeArtworkLoaded` notification is triggered
     /// - Parameters:
     ///   - asset: an AVAsset
     ///   - podcastUuid: the UUID of the current playing podcast

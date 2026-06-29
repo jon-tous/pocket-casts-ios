@@ -1,4 +1,5 @@
 import Combine
+import Kingfisher
 import PocketCastsDataModel
 import PocketCastsServer
 import PocketCastsUtils
@@ -152,6 +153,7 @@ class EpisodeDetailViewController: FakeNavViewController, UIDocumentInteractionC
 
     private var docController: UIDocumentInteractionController?
     private var starButton: UIButton?
+    private var artworkPrefetchTask: Task<Void, Never>?
 
     var rawShowNotes: String?
     var lastThemeRenderedNotesIn: Theme.ThemeType?
@@ -270,6 +272,9 @@ class EpisodeDetailViewController: FakeNavViewController, UIDocumentInteractionC
 
         addCustomObserver(Constants.Notifications.downloadProgress, selector: #selector(updateDownloadProgress))
         addCustomObserver(Constants.Notifications.episodeDownloaded, selector: #selector(episodeDownloadedEvent))
+        addCustomObserver(.episodeArtworkLoaded, selector: #selector(episodeArtworkLoaded))
+
+        prefetchEpisodeArtworkIfNeeded()
 
         addCustomObserver(Constants.Notifications.episodePlayStatusChanged, selector: #selector(specificEpisodeEventDidFire(_:)))
         addCustomObserver(Constants.Notifications.episodeArchiveStatusChanged, selector: #selector(specificEpisodeEventDidFire(_:)))
@@ -285,6 +290,9 @@ class EpisodeDetailViewController: FakeNavViewController, UIDocumentInteractionC
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+
+        artworkPrefetchTask?.cancel()
+        artworkPrefetchTask = nil
 
         removeAllCustomObservers()
     }
@@ -421,6 +429,36 @@ class EpisodeDetailViewController: FakeNavViewController, UIDocumentInteractionC
 
     @objc private func playbackProgressDidChange() {
         updateProgress()
+    }
+
+    @objc private func episodeArtworkLoaded() {
+        podcastImage.setBaseEpisode(episode: episode, size: .page)
+    }
+
+    private func prefetchEpisodeArtworkIfNeeded() {
+        guard Settings.loadEmbeddedImages,
+              !ImageManager.sharedManager.subscribedPodcastsCache.isCached(forKey: episode.uuid),
+              artworkPrefetchTask == nil else { return }
+
+        let podcastUuid = episode.podcastUuid
+        let episodeUuid = episode.uuid
+        artworkPrefetchTask = Task { [weak self] in
+            defer { self?.artworkPrefetchTask = nil }
+
+            guard let urlString = try? await ShowInfoCoordinator.shared.loadEpisodeArtworkUrl(podcastUuid: podcastUuid, episodeUuid: episodeUuid),
+                  let url = URL(string: urlString),
+                  !Task.isCancelled else { return }
+
+            let size = ImageManager.sharedManager.biggestPodcastImageSize
+            let processor = DownsamplingImageProcessor(size: .init(width: size, height: size))
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                KingfisherManager.shared.retrieveImage(with: url, options: [.processor(processor)]) { result in
+                    defer { continuation.resume() }
+                    guard !Task.isCancelled, let image = try? result.get().image else { return }
+                    ImageManager.sharedManager.save(image, for: episodeUuid)
+                }
+            }
+        }
     }
 
     override func handleThemeChanged() {

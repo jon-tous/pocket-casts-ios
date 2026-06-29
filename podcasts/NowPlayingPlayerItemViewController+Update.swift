@@ -15,7 +15,7 @@ extension NowPlayingPlayerItemViewController {
         addCustomObserver(Constants.Notifications.podcastChaptersDidUpdate, selector: #selector(update(notification:)))
         addCustomObserver(Constants.Notifications.googleCastStatusChanged, selector: #selector(update(notification:)))
         addCustomObserver(Constants.Notifications.playbackEffectsChanged, selector: #selector(update(notification:)))
-        addCustomObserver(.episodeEmbeddedArtworkLoaded, selector: #selector(update(notification:)))
+        addCustomObserver(.episodeArtworkLoaded, selector: #selector(update(notification:)))
         addCustomObserver(Constants.Notifications.podcastChapterChanged, selector: #selector(updateChapterInfo))
         addCustomObserver(Constants.Notifications.episodeDownloaded, selector: #selector(update(notification:)))
         addCustomObserver(UIApplication.willEnterForegroundNotification, selector: #selector(update(notification:)))

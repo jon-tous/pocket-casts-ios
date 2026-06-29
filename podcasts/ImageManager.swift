@@ -272,7 +272,7 @@ class ImageManager {
 
     func save(_ image: UIImage, for episodeUuid: String) {
         subscribedPodcastsCache.store(image, forKey: episodeUuid) { _ in
-            NotificationCenter.postOnMainThread(notification: .episodeEmbeddedArtworkLoaded)
+            NotificationCenter.postOnMainThread(notification: .episodeArtworkLoaded)
         }
     }
 
