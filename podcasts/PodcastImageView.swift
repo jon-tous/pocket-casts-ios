@@ -1,3 +1,4 @@
+import Combine
 import PocketCastsDataModel
 import PocketCastsUtils
 import UIKit
@@ -6,6 +7,7 @@ import Kingfisher
 class PodcastImageView: UIView {
     private var shadowView: UIView?
     var imageView: UIImageView?
+    private var imageCancellable: AnyCancellable?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -94,12 +96,12 @@ class PodcastImageView: UIView {
             CATransaction.setCompletionBlock { [weak self] in
                 guard let self else { return }
 
-                shadowView.layer.shadowPath = UIBezierPath(rect: self.bounds).cgPath
+                shadowView.layer.shadowPath = UIBezierPath(rect: self.currentShadowRect()).cgPath
             }
 
             let pathAnimation = CABasicAnimation(keyPath: "shadowPath")
             pathAnimation.duration = animation.duration
-            pathAnimation.toValue = UIBezierPath(rect: bounds).cgPath
+            pathAnimation.toValue = UIBezierPath(rect: currentShadowRect()).cgPath
             pathAnimation.isRemovedOnCompletion = false
             pathAnimation.timingFunction = animation.timingFunction
             pathAnimation.fillMode = CAMediaTimingFillMode.forwards
@@ -107,7 +109,7 @@ class PodcastImageView: UIView {
 
             CATransaction.commit()
         } else {
-            shadowView.layer.shadowPath = UIBezierPath(rect: bounds).cgPath
+            shadowView.layer.shadowPath = UIBezierPath(rect: currentShadowRect()).cgPath
         }
     }
 
@@ -135,6 +137,30 @@ class PodcastImageView: UIView {
 
             addSubview(imageView)
             imageView.anchorToAllSidesOf(view: self)
+        }
+
+        imageCancellable = imageView?.publisher(for: \.image)
+            .sink { [weak self] _ in self?.setNeedsLayout() }
+    }
+
+    private func currentShadowRect() -> CGRect {
+        if imageView?.contentMode == .scaleAspectFit,
+           let size = imageView?.image?.size,
+           size.width > 0, size.height > 0 {
+            return aspectFitRect(for: size)
+        }
+        return bounds
+    }
+
+    private func aspectFitRect(for imageSize: CGSize) -> CGRect {
+        let imageAspect = imageSize.width / imageSize.height
+        let viewAspect = bounds.width / bounds.height
+        if imageAspect > viewAspect {
+            let height = bounds.width / imageAspect
+            return CGRect(x: 0, y: (bounds.height - height) / 2, width: bounds.width, height: height)
+        } else {
+            let width = bounds.height * imageAspect
+            return CGRect(x: (bounds.width - width) / 2, y: 0, width: width, height: bounds.height)
         }
     }
 }

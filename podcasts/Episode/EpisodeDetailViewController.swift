@@ -216,6 +216,8 @@ class EpisodeDetailViewController: FakeNavViewController, UIDocumentInteractionC
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        podcastImage.imageView?.contentMode = .scaleAspectFit
+
         addBookmarksTabIfNeeded()
 
         closeTapped = { [weak self] in
