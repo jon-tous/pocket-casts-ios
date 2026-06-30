@@ -93,10 +93,12 @@ class EpisodeArtwork {
                     continuation.resume(returning: false)
                     return
                 }
-                if let image = try? result.get().image {
-                    self?.imageManager.save(image, for: episodeUuid)
+                switch result {
+                case .success(let value):
+                    self?.imageManager.save(value.image, for: episodeUuid)
                     continuation.resume(returning: true)
-                } else {
+                case .failure(let error):
+                    FileLog.shared.addMessage("EpisodeArtwork: failed to download show notes artwork for \(episodeUuid): \(error.localizedDescription)")
                     continuation.resume(returning: false)
                 }
             }
